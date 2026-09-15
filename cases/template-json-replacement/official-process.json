@@ -1,0 +1,95 @@
+{
+  "schemaVersion": "0.1",
+  "id": "kaoya-official-template-publication",
+  "title": "官方模板：更换 JSON 后哪些地方变",
+  "kind": "process",
+  "description": "官方发布有两条可见结果：新训练读取按年份编译的模板；公开 PDF/资料目录经后端发布与前端同步后更新。旧会话仍保留原模板，真题描述另由题目数据提供。",
+  "entryNodeIds": ["source"],
+  "goalNodeIds": ["training-ui", "materials-ui"],
+  "metadata": {
+    "analysisMethod": "manual inspection of current local backend/frontend branch",
+    "scope": "official template source, publication and user-visible outcomes; no deployment performed",
+    "codeRefBase": "kaoyaWriter workspace root"
+  },
+  "nodes": [
+    {
+      "id": "source", "kind": "input", "title": "官方 JSON 与 registry", "certainty": "confirmed",
+      "summary": "registry 按英语一/二、作文类型指向源 JSON、逐年 manifest、PDF 配置和 24 槽答题卡。",
+      "outputs": [{"id": "package", "name": "package", "dataType": "OfficialTemplatePackage"}],
+      "codeRefs": [{"file": "Essay-WriterBackend/template_packages/registry.json", "lineStart": 1}],
+      "source": {"kind": "file", "file": "Essay-WriterBackend/template_packages/registry.json"}
+    },
+    {
+      "id": "validate", "kind": "stage", "title": "逐年编译与校验", "certainty": "confirmed",
+      "purpose": "按每个年份生成完整 templateSections，检查路由和槽位：必填加选填不超过 24；错误时不发布半成品。",
+      "inputs": [{"id": "package", "name": "package", "dataType": "OfficialTemplatePackage"}],
+      "outputs": [{"id": "validated", "name": "validated", "dataType": "ValidatedYearTemplates"}],
+      "codeRefs": [{"file": "Essay-WriterBackend/app/domains/training/application/template_release.py", "lineStart": 89, "symbol": "_compile_packages"}],
+      "source": {"kind": "code", "file": "Essay-WriterBackend/app/domains/training/application/template_release.py", "lineStart": 89}
+    },
+    {
+      "id": "publish", "kind": "stage", "title": "后端命令生成官方产物", "certainty": "confirmed",
+      "purpose": "运行 scripts/template_release.py：分阶段生成 PDF、合订本、catalog 与 release evidence。PDF 还使用单独的内容 package，改 JSON 时须一同核对。",
+      "inputs": [{"id": "validated", "name": "validated", "dataType": "ValidatedYearTemplates"}],
+      "outputs": [{"id": "release", "name": "release", "dataType": "PublicReleaseArtifacts"}],
+      "codeRefs": [{"file": "Essay-WriterBackend/scripts/template_release.py", "lineStart": 80, "symbol": "main"}, {"file": "Essay-WriterBackend/app/domains/training/application/template_release.py", "lineStart": 391, "symbol": "build_template_library_artifacts"}],
+      "source": {"kind": "code", "file": "Essay-WriterBackend/scripts/template_release.py", "lineStart": 80}
+    },
+    {
+      "id": "artifacts", "kind": "artifact", "title": "公开 PDF 与资料目录", "certainty": "confirmed",
+      "summary": "后端发布目录中保存 PDF、catalog.generated.json 和 current.json；尚未等于前端已更新。",
+      "inputs": [{"id": "release", "name": "release", "dataType": "PublicReleaseArtifacts"}],
+      "outputs": [{"id": "catalog", "name": "catalog", "dataType": "TemplateLibraryCatalog"}],
+      "artifacts": [{"id": "pdf", "kind": "file", "title": "公开模板 PDF", "uri": "Essay-WriterBackend/resources/template-library/"}, {"id": "catalog", "kind": "json", "title": "catalog.generated.json", "uri": "Essay-WriterBackend/resources/template-library/catalog.generated.json"}, {"id": "evidence", "kind": "json", "title": "current.json", "uri": "Essay-WriterBackend/resources/template-releases/current.json"}],
+      "source": {"kind": "code", "file": "Essay-WriterBackend/scripts/template_release.py", "lineStart": 24}
+    },
+    {
+      "id": "frontend-sync", "kind": "stage", "title": "前端命令同步目录与版本", "certainty": "confirmed",
+      "purpose": "运行 npm run template:sync，把后端 catalog 变为小程序的资料目录模块和缓存版本；官方更新目前是前后端两条命令，不是只保存 JSON。",
+      "inputs": [{"id": "catalog", "name": "catalog", "dataType": "TemplateLibraryCatalog"}],
+      "outputs": [{"id": "frontend-data", "name": "frontend-data", "dataType": "GeneratedFrontendModules"}],
+      "codeRefs": [{"file": "Writer-Frontend/scripts/sync-template-release.mjs", "lineStart": 154}],
+      "source": {"kind": "code", "file": "Writer-Frontend/scripts/sync-template-release.mjs", "lineStart": 154}
+    },
+    {
+      "id": "materials-ui", "kind": "output", "title": "资料页显示新公开 PDF", "certainty": "confirmed",
+      "summary": "同步并部署后，用户看到更新的官方资料目录与 PDF；个人专属 PDF 卡片是另一条发布路径。",
+      "inputs": [{"id": "frontend-data", "name": "frontend-data", "dataType": "GeneratedFrontendModules"}],
+      "codeRefs": [{"file": "Writer-Frontend/pkg-template-training/utils/templateLibrary.js", "lineStart": 1}, {"file": "Writer-Frontend/pkg-template-training/pages/templates/templates.vue", "lineStart": 1}],
+      "source": {"kind": "code", "file": "Writer-Frontend/pkg-template-training/pages/templates/templates.vue", "lineStart": 1}
+    },
+    {
+      "id": "runtime", "kind": "module", "title": "按题目载入当年官方模板", "certainty": "confirmed",
+      "purpose": "后端根据考试类型、作文类型和年份载入官方 JSON 编译结果；真题描述来自单独的题目数据，不因模板 JSON 自动改变。",
+      "inputs": [{"id": "package", "name": "package", "dataType": "OfficialTemplatePackage"}],
+      "outputs": [{"id": "year-template", "name": "year-template", "dataType": "TrainingTemplateSnapshot"}],
+      "codeRefs": [{"file": "Essay-WriterBackend/app/domains/training/application/template_loader.py", "lineStart": 1208, "symbol": "load_json_training_template_for_year"}, {"file": "Essay-WriterBackend/app/interfaces/api/routers/training_router.py", "lineStart": 281}],
+      "source": {"kind": "code", "file": "Essay-WriterBackend/app/domains/training/application/template_loader.py", "lineStart": 1208}
+    },
+    {
+      "id": "session", "kind": "stage", "title": "新会话固定官方快照", "certainty": "confirmed",
+      "purpose": "新训练把所选完整模板存入会话；已创建的活动或历史会话继续使用自己的旧快照，不会被后续官方发布改写。",
+      "inputs": [{"id": "year-template", "name": "year-template", "dataType": "TrainingTemplateSnapshot"}],
+      "outputs": [{"id": "session", "name": "session", "dataType": "TrainingSessionWithSnapshot"}],
+      "codeRefs": [{"file": "Essay-WriterBackend/app/domains/training/application/session_service.py", "lineStart": 243, "symbol": "create_or_reuse_session"}],
+      "source": {"kind": "code", "file": "Essay-WriterBackend/app/domains/training/application/session_service.py", "lineStart": 243}
+    },
+    {
+      "id": "training-ui", "kind": "output", "title": "新训练的 Q1/Q2 与正文", "certainty": "confirmed",
+      "summary": "前端从当年模板的 templateSections 生成题签、填空位置、固定句和提示；若官方结构改变，Q 槽位也随新模板改变，但不得超过答题卡 24 槽。",
+      "inputs": [{"id": "session", "name": "session", "dataType": "TrainingSessionWithSnapshot"}],
+      "codeRefs": [{"file": "Essay-WriterBackend/app/interfaces/api/routers/training_router.py", "lineStart": 281}, {"file": "Writer-Frontend/utils/templateTraining.js", "lineStart": 202, "symbol": "getTemplateFillEntries"}, {"file": "Writer-Frontend/pkg-template-training/pages/writing/writing.vue", "lineStart": 413, "symbol": "questionTabs"}],
+      "source": {"kind": "code", "file": "Writer-Frontend/pkg-template-training/pages/writing/writing.vue", "lineStart": 413}
+    }
+  ],
+  "edges": [
+    {"id": "o01", "source": "source", "target": "validate", "kind": "data_flow", "sourcePort": "package", "targetPort": "package"},
+    {"id": "o02", "source": "validate", "target": "publish", "kind": "data_flow", "sourcePort": "validated", "targetPort": "validated"},
+    {"id": "o03", "source": "publish", "target": "artifacts", "kind": "produces", "sourcePort": "release", "targetPort": "release"},
+    {"id": "o04", "source": "artifacts", "target": "frontend-sync", "kind": "data_flow", "sourcePort": "catalog", "targetPort": "catalog"},
+    {"id": "o05", "source": "frontend-sync", "target": "materials-ui", "kind": "produces", "sourcePort": "frontend-data", "targetPort": "frontend-data"},
+    {"id": "o06", "source": "source", "target": "runtime", "kind": "data_flow", "sourcePort": "package", "targetPort": "package"},
+    {"id": "o07", "source": "runtime", "target": "session", "kind": "data_flow", "sourcePort": "year-template", "targetPort": "year-template"},
+    {"id": "o08", "source": "session", "target": "training-ui", "kind": "data_flow", "sourcePort": "session", "targetPort": "session"}
+  ]
+}

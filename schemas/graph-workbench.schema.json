@@ -1,0 +1,356 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/graph-workbench.schema.json",
+  "title": "Graph Workbench Document",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "id",
+    "title",
+    "kind",
+    "nodes",
+    "edges"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "kind": {
+      "enum": [
+        "planning",
+        "process",
+        "repository_overview"
+      ]
+    },
+    "description": {
+      "type": "string"
+    },
+    "entryNodeIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "goalNodeIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "frontier": {
+      "type": "object",
+      "properties": {
+        "nodeIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "title"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "enum": [
+              "goal",
+              "decision",
+              "investigation",
+              "task",
+              "candidate",
+              "unknown",
+              "input",
+              "output",
+              "stage",
+              "module",
+              "artifact",
+              "group"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "summary": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "unstarted",
+              "ready",
+              "active",
+              "blocked",
+              "done",
+              "rejected",
+              "out_of_scope"
+            ]
+          },
+          "certainty": {
+            "enum": [
+              "confirmed",
+              "likely",
+              "speculative",
+              "unknown",
+              "resolved"
+            ]
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "principle": {
+            "type": "string"
+          },
+          "inputs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/port"
+            }
+          },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/port"
+            }
+          },
+          "acceptance": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/artifact"
+            }
+          },
+          "codeRefs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/codeRef"
+            }
+          },
+          "childGraphId": {
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/$defs/source"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "source",
+          "target",
+          "kind"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "depends_on",
+              "unblocks",
+              "candidate_path",
+              "data_flow",
+              "control_flow",
+              "produces",
+              "references"
+            ]
+          },
+          "certainty": {
+            "enum": [
+              "confirmed",
+              "likely",
+              "speculative"
+            ]
+          },
+          "sourcePort": {
+            "type": "string"
+          },
+          "targetPort": {
+            "type": "string"
+          },
+          "schemaRef": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "metadata": {
+      "type": "object"
+    }
+  },
+  "$defs": {
+    "port": {
+      "type": "object",
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "dataType": {
+          "type": "string"
+        },
+        "schema": {},
+        "description": {
+          "type": "string"
+        },
+        "example": {}
+      },
+      "additionalProperties": true
+    },
+    "artifact": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "title"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "image",
+            "plot",
+            "table",
+            "json",
+            "log",
+            "markdown",
+            "code",
+            "file",
+            "url"
+          ]
+        },
+        "title": {
+          "type": "string"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "inlinePreview": {},
+        "description": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "codeRef": {
+      "type": "object",
+      "required": [
+        "file"
+      ],
+      "properties": {
+        "file": {
+          "type": "string"
+        },
+        "lineStart": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "lineEnd": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "symbol": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "source": {
+      "type": "object",
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "wayfinder_ticket",
+            "issue",
+            "file",
+            "code",
+            "conversation",
+            "manual"
+          ]
+        },
+        "uri": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string"
+        },
+        "lineStart": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "lineEnd": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "externalId": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

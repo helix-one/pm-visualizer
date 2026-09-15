@@ -1,0 +1,89 @@
+/* The outcome rail is driven by goalNodeIds, never by case-specific node IDs. */
+.canvas-heading {
+  flex: 1;
+  min-width: 0;
+}
+
+.canvas-headline-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.case-scope-switch {
+  display: flex;
+  flex: none;
+  gap: 3px;
+  padding: 3px;
+  background: #10191e;
+  border: 1px solid #43575f;
+}
+
+.case-scope-switch button {
+  border: 0;
+  background: transparent;
+  color: #8ba5ad;
+  font-size: 11px;
+  padding: 6px 9px;
+}
+
+.case-scope-switch button.active {
+  background: #36515a;
+  color: #eaf3f0;
+}
+
+.outcome-nav {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 15px;
+  padding-top: 12px;
+  border-top: 1px solid #34444b;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.outcome-nav > span {
+  flex: none;
+  color: #bdad8f;
+  font-size: 10px;
+  letter-spacing: .08em;
+  margin-right: 3px;
+}
+
+.outcome-nav button {
+  flex: none;
+  max-width: 230px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border: 1px solid #536a73;
+  background: #1f3139;
+  color: #c3d8da;
+  padding: 7px 10px;
+  font-size: 11px;
+}
+
+.outcome-nav button:hover,
+.outcome-nav button.active {
+  border-color: #b7a07b;
+  background: #3a3d37;
+  color: #f1e2c8;
+}
+
+.outcome-nav .overview-action {
+  margin-left: auto;
+  border-style: dashed;
+  background: transparent;
+  color: #93aab2;
+}
+
+@media (max-width: 760px) {
+  .document-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .canvas-header { display: block; }
+  .canvas-headline-row { align-items: flex-start; }
+  .case-scope-switch button { font-size: 10px; padding: 5px 6px; }
+  .outcome-nav { margin-top: 10px; }
+  .canvas-stats { display: none; }
+}

@@ -1,0 +1,114 @@
+{
+  "schemaVersion": "0.1",
+  "id": "kaoya-private-template-user-outcomes",
+  "title": "个人模板：从微调请求到训练与批改",
+  "kind": "process",
+  "description": "用户最终得到完整的个人模板与 PDF；新训练按年份使用它生成 Q1/Q2、正文、提交和回看。个人微调只能改固定文字与提示，不改变槽位身份、顺序或数量。",
+  "entryNodeIds": ["official-base", "personal-request"],
+  "goalNodeIds": ["editor", "feedback", "private-pdf"],
+  "metadata": {
+    "analysisMethod": "manual inspection of current local backend/frontend branch",
+    "scope": "personal publication and user-visible training outcomes; no deployment performed",
+    "codeRefBase": "kaoyaWriter workspace root"
+  },
+  "nodes": [
+    {
+      "id": "official-base", "kind": "input", "title": "官方模板底稿", "certainty": "confirmed",
+      "summary": "按英语一/二、作文类型和年份，读取官方 JSON 及训练 manifest。",
+      "outputs": [{"id": "base", "name": "base", "dataType": "YearTemplateSnapshot[]", "description": "各年份已编译的完整官方模板"}],
+      "codeRefs": [{"file": "Essay-WriterBackend/template_packages/registry.json", "lineStart": 9}, {"file": "Essay-WriterBackend/app/domains/training/application/template_loader.py", "lineStart": 1208, "symbol": "load_json_training_template_for_year"}],
+      "source": {"kind": "code", "file": "Essay-WriterBackend/app/domains/training/application/template_loader.py", "lineStart": 1208}
+    },
+    {
+      "id": "personal-request", "kind": "input", "title": "个人微调请求 JSON", "certainty": "confirmed",
+      "summary": "指定用户、考试范围及 text_overrides / hint_overrides；不是整份模板。",
+      "outputs": [{"id": "overrides", "name": "overrides", "dataType": "WordingOverrides", "description": "固定文字和填空提示的定点替换"}],
+      "codeRefs": [{"file": "Essay-WriterBackend/docs/plans/2026-09-12-public-and-private-template-publication.md", "lineStart": 54}, {"file": "Essay-WriterBackend/app/domains/training/application/user_template_release_service.py", "lineStart": 210, "symbol": "build_user_template_release"}],
+      "source": {"kind": "code", "file": "Essay-WriterBackend/app/domains/training/application/user_template_release_service.py", "lineStart": 210}
+    },
+    {
+      "id": "materialize", "kind": "stage", "title": "生成完整个人模板", "certainty": "confirmed",
+      "purpose": "把微调应用到每个适用年份的官方底稿，形成完整 templateSections 快照，同时生成个人 PDF；校验槽位不增删、不重排、总量不超过 24。",
+      "inputs": [{"id": "base", "name": "base", "dataType": "YearTemplateSnapshot[]"}, {"id": "overrides", "name": "overrides", "dataType": "WordingOverrides"}],
+      "outputs": [{"id": "built", "name": "built", "dataType": "FullPrivateRelease", "description": "完整逐年模板快照 + PDF 字节 + 版本哈希"}],
+      "codeRefs": [{"file": "Essay-WriterBackend/app/domains/training/application/template_personalization.py", "lineStart": 43, "symbol": "personalize_template_snapshot"}, {"file": "Essay-WriterBackend/app/domains/training/application/user_template_release_service.py", "lineStart": 210, "symbol": "build_user_template_release"}],
+      "source": {"kind": "code", "file": "Essay-WriterBackend/app/domains/training/application/user_template_release_service.py", "lineStart": 210}
+    },
+    {
+      "id": "private-record", "kind": "artifact", "title": "按用户保存版本与 PDF", "certainty": "confirmed",
+      "summary": "主数据库 user_template_releases：同一用户与考试范围只保留一个当前发布版；存完整逐年快照和 PDF 内容。",
+      "inputs": [{"id": "built", "name": "built", "dataType": "FullPrivateRelease"}],
+      "outputs": [{"id": "release", "name": "release", "dataType": "PublishedPrivateRelease"}, {"id": "pdf", "name": "pdf", "dataType": "PDF bytes"}],
+      "artifacts": [{"id": "row", "kind": "table", "title": "user_template_releases", "description": "含 user_id、template_snapshots_json、pdf_blob、版本与状态"}],
+      "codeRefs": [{"file": "Essay-WriterBackend/models/user_template_release.py", "lineStart": 25, "symbol": "UserTemplateRelease"}, {"file": "Essay-WriterBackend/app/domains/training/application/user_template_release_service.py", "lineStart": 430, "symbol": "publish_user_template_release"}],
+      "source": {"kind": "code", "file": "Essay-WriterBackend/app/domains/training/application/user_template_release_service.py", "lineStart": 430}
+    },
+    {
+      "id": "resolve", "kind": "module", "title": "为此用户选当年模板", "certainty": "confirmed",
+      "purpose": "按登录用户、英语一/二、作文类型和年份查询当前个人发布版；有对应年份就选个人完整模板，否则回退官方模板。其他用户不会读到该记录。",
+      "inputs": [{"id": "release", "name": "release", "dataType": "PublishedPrivateRelease"}, {"id": "base", "name": "base", "dataType": "YearTemplateSnapshot[]"}],
+      "outputs": [{"id": "resolved", "name": "resolved", "dataType": "TrainingTemplateSnapshot", "description": "template_owner 为 private 或 official"}],
+      "codeRefs": [{"file": "Essay-WriterBackend/app/domains/training/application/user_template_release_service.py", "lineStart": 401, "symbol": "resolve_training_template_for_user"}],
+      "source": {"kind": "code", "file": "Essay-WriterBackend/app/domains/training/application/user_template_release_service.py", "lineStart": 401}
+    },
+    {
+      "id": "session", "kind": "stage", "title": "新训练固定模板副本", "certainty": "confirmed",
+      "purpose": "创建新训练会话时把已选完整模板存入 training_sessions.template_snapshot_json；已有活动会话会复用原来的快照，后续发布不改旧训练。",
+      "inputs": [{"id": "resolved", "name": "resolved", "dataType": "TrainingTemplateSnapshot"}],
+      "outputs": [{"id": "session", "name": "session", "dataType": "TrainingSessionWithSnapshot"}],
+      "codeRefs": [{"file": "Essay-WriterBackend/app/domains/training/application/session_service.py", "lineStart": 243, "symbol": "create_or_reuse_session"}],
+      "source": {"kind": "code", "file": "Essay-WriterBackend/app/domains/training/application/session_service.py", "lineStart": 243}
+    },
+    {
+      "id": "template-api", "kind": "module", "title": "按题目与会话返回模板", "certainty": "confirmed",
+      "purpose": "前端携带年份、考试类型、作文类型与 session_id 请求 /training/templates/year。已有会话优先返回会话快照，并附上该年份真题描述；不是前端直接读原始 JSON。",
+      "inputs": [{"id": "session", "name": "session", "dataType": "TrainingSessionWithSnapshot"}],
+      "outputs": [{"id": "payload", "name": "payload", "dataType": "TrainingTemplatePayload"}],
+      "codeRefs": [{"file": "Essay-WriterBackend/app/interfaces/api/routers/training_router.py", "lineStart": 281, "symbol": "get_training_template_for_year"}, {"file": "Writer-Frontend/api/training.js", "lineStart": 26, "symbol": "getYearTemplate"}],
+      "source": {"kind": "code", "file": "Essay-WriterBackend/app/interfaces/api/routers/training_router.py", "lineStart": 281}
+    },
+    {
+      "id": "editor", "kind": "output", "title": "训练页：Q1/Q2 与正文", "certainty": "confirmed",
+      "summary": "前端从返回的 templateSections 提取填空 key、顺序、提示和固定句，生成题签与可填正文。个人微调只改变句子/提示，不改变 Q 槽位结构。",
+      "inputs": [{"id": "payload", "name": "payload", "dataType": "TrainingTemplatePayload"}],
+      "outputs": [{"id": "answers", "name": "answers", "dataType": "SessionIdAndFillAnswers"}],
+      "codeRefs": [{"file": "Writer-Frontend/pkg-template-training/pages/writing/writing.vue", "lineStart": 830, "symbol": "loadTemplateData"}, {"file": "Writer-Frontend/utils/templateTraining.js", "lineStart": 202, "symbol": "getTemplateFillEntries"}, {"file": "Writer-Frontend/pkg-template-training/pages/writing/writing.vue", "lineStart": 413, "symbol": "questionTabs"}],
+      "source": {"kind": "code", "file": "Writer-Frontend/pkg-template-training/pages/writing/writing.vue", "lineStart": 413}
+    },
+    {
+      "id": "submit", "kind": "stage", "title": "提交答案并批改", "certainty": "confirmed",
+      "purpose": "前端提交 session_id 与 Q1/Q2 等填空答案；后端从同一会话读取固定模板，拼出完整作文并保存本次尝试的模板快照。",
+      "inputs": [{"id": "answers", "name": "answers", "dataType": "SessionIdAndFillAnswers"}],
+      "outputs": [{"id": "attempt", "name": "attempt", "dataType": "TrainingAttemptWithSnapshot"}],
+      "codeRefs": [{"file": "Essay-WriterBackend/app/domains/training/application/attempt_service.py", "lineStart": 654, "description": "读取会话快照并渲染提交作文"}, {"file": "Writer-Frontend/utils/templateTraining.js", "lineStart": 249, "symbol": "renderTrainingEssay"}],
+      "source": {"kind": "code", "file": "Essay-WriterBackend/app/domains/training/application/attempt_service.py", "lineStart": 654}
+    },
+    {
+      "id": "feedback", "kind": "output", "title": "批改回看仍对准 Q1/Q2", "certainty": "confirmed",
+      "summary": "批改页/总结页使用本次尝试保存的模板和填答，以同一批 Q 键定位句子与反馈；后来发布的新模板不会重排旧记录。",
+      "inputs": [{"id": "attempt", "name": "attempt", "dataType": "TrainingAttemptWithSnapshot"}],
+      "codeRefs": [{"file": "Essay-WriterBackend/app/domains/training/application/attempt_service.py", "lineStart": 840, "description": "返回 attempt.template_snapshot"}, {"file": "Writer-Frontend/pkg-template-training/components/template-training-essay-review.vue", "lineStart": 88, "description": "从回看快照提取模板段落与 Q 键"}],
+      "source": {"kind": "code", "file": "Writer-Frontend/pkg-template-training/components/template-training-essay-review.vue", "lineStart": 88}
+    },
+    {
+      "id": "private-pdf", "kind": "output", "title": "资料页：我的专属 PDF", "certainty": "confirmed",
+      "summary": "仅此用户看到“我的专属模板”卡片，可从需登录的接口下载数据库中保存的个人 PDF；公开资料不被覆盖。",
+      "inputs": [{"id": "pdf", "name": "pdf", "dataType": "PDF bytes"}],
+      "codeRefs": [{"file": "Essay-WriterBackend/app/interfaces/api/routers/training_router.py", "lineStart": 400, "symbol": "download_my_template_pdf"}, {"file": "Writer-Frontend/pkg-template-training/pages/templates/templates.vue", "lineStart": 50}],
+      "source": {"kind": "code", "file": "Writer-Frontend/pkg-template-training/pages/templates/templates.vue", "lineStart": 50}
+    }
+  ],
+  "edges": [
+    {"id": "p01", "source": "official-base", "target": "materialize", "kind": "data_flow", "sourcePort": "base", "targetPort": "base"},
+    {"id": "p02", "source": "personal-request", "target": "materialize", "kind": "data_flow", "sourcePort": "overrides", "targetPort": "overrides"},
+    {"id": "p03", "source": "materialize", "target": "private-record", "kind": "produces", "sourcePort": "built", "targetPort": "built"},
+    {"id": "p04", "source": "private-record", "target": "resolve", "kind": "data_flow", "sourcePort": "release", "targetPort": "release"},
+    {"id": "p05", "source": "official-base", "target": "resolve", "kind": "references", "sourcePort": "base", "targetPort": "base", "label": "没有个人版时回退"},
+    {"id": "p06", "source": "resolve", "target": "session", "kind": "data_flow", "sourcePort": "resolved", "targetPort": "resolved"},
+    {"id": "p07", "source": "session", "target": "template-api", "kind": "data_flow", "sourcePort": "session", "targetPort": "session"},
+    {"id": "p08", "source": "template-api", "target": "editor", "kind": "data_flow", "sourcePort": "payload", "targetPort": "payload"},
+    {"id": "p09", "source": "editor", "target": "submit", "kind": "data_flow", "sourcePort": "answers", "targetPort": "answers"},
+    {"id": "p10", "source": "submit", "target": "feedback", "kind": "data_flow", "sourcePort": "attempt", "targetPort": "attempt"},
+    {"id": "p11", "source": "private-record", "target": "private-pdf", "kind": "produces", "sourcePort": "pdf", "targetPort": "pdf"}
+  ]
+}

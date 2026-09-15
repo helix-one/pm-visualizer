@@ -1,0 +1,148 @@
+{
+  "schemaVersion": "0.1",
+  "id": "process-example",
+  "title": "Feature analysis example",
+  "kind": "process",
+  "entryNodeIds": [
+    "raw"
+  ],
+  "goalNodeIds": [
+    "result"
+  ],
+  "nodes": [
+    {
+      "id": "raw",
+      "kind": "input",
+      "title": "Raw dataset",
+      "certainty": "confirmed",
+      "outputs": [
+        {
+          "id": "files",
+          "name": "files",
+          "dataType": "File[]"
+        }
+      ]
+    },
+    {
+      "id": "validate",
+      "kind": "stage",
+      "title": "Load & validate",
+      "certainty": "confirmed",
+      "purpose": "Reject malformed input at the boundary.",
+      "inputs": [
+        {
+          "id": "files",
+          "name": "files",
+          "dataType": "File[]"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "records",
+          "name": "records",
+          "dataType": "ValidatedRecord[]"
+        }
+      ]
+    },
+    {
+      "id": "normalize",
+      "kind": "stage",
+      "title": "Normalize schema",
+      "certainty": "confirmed",
+      "purpose": "Give downstream modules one stable representation.",
+      "inputs": [
+        {
+          "id": "records",
+          "name": "records",
+          "dataType": "ValidatedRecord[]"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "normalized",
+          "name": "normalized",
+          "dataType": "NormalizedData"
+        }
+      ]
+    },
+    {
+      "id": "analysis",
+      "kind": "module",
+      "title": "Analysis",
+      "certainty": "confirmed",
+      "inputs": [
+        {
+          "id": "data",
+          "name": "data",
+          "dataType": "NormalizedData"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "result",
+          "name": "result",
+          "dataType": "AnalysisResult"
+        }
+      ],
+      "artifacts": [
+        {
+          "id": "plot1",
+          "kind": "plot",
+          "title": "Diagnostic plot",
+          "description": "Example preview slot."
+        }
+      ]
+    },
+    {
+      "id": "result",
+      "kind": "output",
+      "title": "Result bundle",
+      "certainty": "confirmed",
+      "inputs": [
+        {
+          "id": "result",
+          "name": "result",
+          "dataType": "AnalysisResult"
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "p1",
+      "source": "raw",
+      "target": "validate",
+      "kind": "data_flow",
+      "certainty": "confirmed",
+      "sourcePort": "files",
+      "targetPort": "files"
+    },
+    {
+      "id": "p2",
+      "source": "validate",
+      "target": "normalize",
+      "kind": "data_flow",
+      "certainty": "confirmed",
+      "sourcePort": "records",
+      "targetPort": "records"
+    },
+    {
+      "id": "p3",
+      "source": "normalize",
+      "target": "analysis",
+      "kind": "data_flow",
+      "certainty": "confirmed",
+      "sourcePort": "normalized",
+      "targetPort": "data"
+    },
+    {
+      "id": "p4",
+      "source": "analysis",
+      "target": "result",
+      "kind": "data_flow",
+      "certainty": "confirmed",
+      "sourcePort": "result",
+      "targetPort": "result"
+    }
+  ]
+}

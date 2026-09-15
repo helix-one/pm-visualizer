@@ -1,0 +1,129 @@
+{
+  "schemaVersion": "0.1",
+  "id": "planning-example",
+  "title": "Graph Workbench v0.1 planning",
+  "kind": "planning",
+  "description": "Example showing confirmed work, speculative future work, a frontier, and unknown continuation.",
+  "entryNodeIds": [
+    "goal"
+  ],
+  "goalNodeIds": [
+    "usable-v01"
+  ],
+  "frontier": {
+    "nodeIds": [
+      "kernel",
+      "ui"
+    ],
+    "description": "These are ready to work now; later integration remains uncertain."
+  },
+  "nodes": [
+    {
+      "id": "goal",
+      "kind": "goal",
+      "title": "Build truthful visual workbench",
+      "status": "done",
+      "certainty": "resolved",
+      "summary": "Agree on product boundary and two graph modes."
+    },
+    {
+      "id": "kernel",
+      "kind": "task",
+      "title": "Implement Graph Kernel",
+      "status": "ready",
+      "certainty": "confirmed",
+      "summary": "Types, loader and validation."
+    },
+    {
+      "id": "ui",
+      "kind": "task",
+      "title": "Build canvas + inspector",
+      "status": "ready",
+      "certainty": "confirmed",
+      "summary": "React Flow + ELK rendering."
+    },
+    {
+      "id": "wayfinder-adapter",
+      "kind": "candidate",
+      "title": "Wayfinder adapter",
+      "status": "unstarted",
+      "certainty": "likely",
+      "summary": "Import Wayfinder planning state after kernel works."
+    },
+    {
+      "id": "repo-analysis",
+      "kind": "candidate",
+      "title": "Repository analysis skill",
+      "status": "unstarted",
+      "certainty": "speculative",
+      "summary": "Exact extraction strategy will depend on first feature tests."
+    },
+    {
+      "id": "unknown-next",
+      "kind": "unknown",
+      "title": "…",
+      "status": "unstarted",
+      "certainty": "unknown",
+      "summary": "Do not invent later polish until real use reveals the need."
+    },
+    {
+      "id": "usable-v01",
+      "kind": "goal",
+      "title": "Useful on one real project",
+      "status": "unstarted",
+      "certainty": "confirmed",
+      "summary": "Planning and one feature process graph are genuinely useful."
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "goal",
+      "target": "kernel",
+      "kind": "unblocks",
+      "certainty": "confirmed"
+    },
+    {
+      "id": "e2",
+      "source": "goal",
+      "target": "ui",
+      "kind": "unblocks",
+      "certainty": "confirmed"
+    },
+    {
+      "id": "e3",
+      "source": "kernel",
+      "target": "wayfinder-adapter",
+      "kind": "unblocks",
+      "certainty": "likely"
+    },
+    {
+      "id": "e4",
+      "source": "ui",
+      "target": "repo-analysis",
+      "kind": "candidate_path",
+      "certainty": "speculative"
+    },
+    {
+      "id": "e5",
+      "source": "wayfinder-adapter",
+      "target": "unknown-next",
+      "kind": "candidate_path",
+      "certainty": "speculative"
+    },
+    {
+      "id": "e6",
+      "source": "repo-analysis",
+      "target": "unknown-next",
+      "kind": "candidate_path",
+      "certainty": "speculative"
+    },
+    {
+      "id": "e7",
+      "source": "unknown-next",
+      "target": "usable-v01",
+      "kind": "candidate_path",
+      "certainty": "speculative"
+    }
+  ]
+}
